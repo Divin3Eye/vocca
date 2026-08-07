@@ -1,41 +1,51 @@
-# Vocca 🎙️
+# Vocca
 
-> Open-source AI dictation. Speak → get clean text — anywhere, no account, no subscription.
+Open-source AI dictation. Speak, get clean text, everywhere.
 
-Vocca lets you **dictate with your voice and get polished text** you can use in any app.
-Press the mic, talk, stop, and Vocca hands you clean text — with Wispr-style voice
-**commands** ("period", "new line", "caps") parsed locally, and **AI polish** that tidies
-punctuation and phrasing.
+Vocca lets you dictate with your voice and get polished text you can use in any app.
+Press the mic or hit Ctrl+Space, talk, stop, and Vocca hands you clean text.
 
-## Why
+## Features
 
-Commercial dictation tools lock this behind a subscription. Vocca is the privacy-first,
-free, **make-it-yourself** alternative: **no account, no backend, no telemetry.**
-
-- 🎙️ **Fast, free transcription** using your browser's native speech recognition (no API key)
-- ✨ **AI polish (BYO key)** — clean up punctuation, grammar, and phrasing with any
-  OpenAI-compatible model you bring; keep it local in your browser
-- ⌨️ **Speak commands** — "period", "comma", "new line", "new paragraph", "caps" edit as you talk
-- 🔒 **Local-first** — settings and history live only in your browser (`localStorage`)
-- ⚖️ **MIT licensed** — fork it, sell it, ship it
+- Instant dictation via browser-native Web Speech API (no API key needed)
+- Voice commands: "period", "comma", "new line", "new paragraph", "caps X"
+- AI polish mode: cleanup punctuation, capitalization, fluency (BYO key)
+- Bilingual: English and Hindi recognition, both-way translation
+- Floating draggable capture bar
+- History drawer with restore/copy
+- Settings persisted in localStorage, no account needed
 
 ## Stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind v4 · Web Speech API
+Next.js 16 / React 19 / TypeScript strict / Tailwind CSS v4
 
-## Run it
+## Run
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
 ```
 
-## AI polish (optional)
+## Tests
 
-Enable it in ⚙️ Settings: provide an OpenAI-compatible **endpoint**, **model**, and your
-**key**. Everything stays in your browser — nothing is sent anywhere except to *your*
-chosen endpoint.
+```bash
+npm test
+```
+
+## AI features (optional)
+
+In Settings, provide an OpenAI-compatible endpoint, model, and API key for:
+- Minor Polish mode (auto-cleanup after dictation)
+- Translation (English to Hindi or vice versa)
+
+Everything stays in your browser. Nothing is sent except to your chosen endpoint.
+
+## Limitations
+
+- Web Speech API is browser-only; works best in Chrome
+- Ctrl+Space hotkey works while the Vocca page is focused (true global hotkey requires the future desktop shell)
+- Speech recognition is not supported in all browsers
 
 ## License
 
-[MIT](LICENSE) — © 2026 Divine Ey3 · made at [xohosting.in](https://xohosting.in)
+[MIT](LICENSE) - (c) 2026 Divine Ey3
