@@ -6,12 +6,14 @@ interface TranscriptAreaProps {
   transcript: string;
   interimText: string;
   onChange: (text: string) => void;
+  placeholder?: string;
 }
 
 export default function TranscriptArea({
   transcript,
   interimText,
   onChange,
+  placeholder = "Your dictation will appear here...",
 }: TranscriptAreaProps) {
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -30,7 +32,7 @@ export default function TranscriptArea({
         ref={areaRef}
         value={displayText}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Your dictation will appear here..."
+        placeholder={placeholder}
         className="w-full min-h-[200px] p-6 text-lg leading-relaxed text-gray-900 bg-white border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent placeholder:text-gray-400"
         aria-label="Dictation transcript"
       />

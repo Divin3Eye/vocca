@@ -1,5 +1,18 @@
 import type { Settings } from "./types";
 
+const POLISH_SYSTEM_PROMPT = `You are a precise dictation editor. A user is speaking, and their raw speech has stumbles, corrections, and spoken punctuation. Produce the final clean text they meant.
+Rules:
+- Resolve self-corrections: if they say a value then correct it ("6 PM, no 9 PM", "on Tuesday — actually Wednesday"), keep ONLY the corrected value.
+- Remove fillers and stumbles (um, uh, like, I mean).
+- Apply proper punctuation, capitalization, and sentence breaks.
+- Keep every real fact and number the speaker actually settled on. Never invent or drop information that wasn't corrected away.
+- "The meeting" vs "meeting": keep the speaker's word choice; only fix obvious grammar that does not change meaning.
+Output ONLY the cleaned text. No preamble, no quotes, no explanation.`;
+
+export function getPolishSystemPrompt(): string {
+  return POLISH_SYSTEM_PROMPT;
+}
+
 export async function polishText(
   text: string,
   settings: Settings
@@ -18,11 +31,7 @@ export async function polishText(
       body: JSON.stringify({
         model: settings.aiModel,
         messages: [
-          {
-            role: "system",
-            content:
-              "Fix punctuation, capitalization, and light fluency issues in the following dictated text. Do not change the meaning or wording. Return only the corrected text.",
-          },
+          { role: "system", content: POLISH_SYSTEM_PROMPT },
           { role: "user", content: text },
         ],
         temperature: 0.1,

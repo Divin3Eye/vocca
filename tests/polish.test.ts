@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { localPolish } from "../lib/polish";
+import { localPolish, getPolishSystemPrompt } from "../lib/polish";
 
 describe("localPolish", () => {
   it("capitalizes first letter of sentences", () => {
@@ -28,5 +28,27 @@ describe("localPolish", () => {
 
   it("handles empty string", () => {
     expect(localPolish("")).toBe("");
+  });
+});
+
+describe("getPolishSystemPrompt", () => {
+  it("returns a non-empty prompt", () => {
+    const prompt = getPolishSystemPrompt();
+    expect(prompt.length).toBeGreaterThan(0);
+  });
+
+  it("includes instruction about self-corrections", () => {
+    const prompt = getPolishSystemPrompt();
+    expect(prompt.toLowerCase()).toContain("self-correction");
+  });
+
+  it("includes instruction about fillers", () => {
+    const prompt = getPolishSystemPrompt();
+    expect(prompt.toLowerCase()).toContain("fillers");
+  });
+
+  it("instructs to output only cleaned text", () => {
+    const prompt = getPolishSystemPrompt();
+    expect(prompt.toLowerCase()).toContain("only the cleaned text");
   });
 });

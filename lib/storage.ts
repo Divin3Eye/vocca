@@ -9,8 +9,8 @@ const DEFAULT_SETTINGS: Settings = {
   mode: "instant",
   language: "en-US",
   translateEnabled: false,
-  aiEndpoint: "",
-  aiModel: "",
+  aiEndpoint: "https://opencode.ai/zen/v1",
+  aiModel: "deepseek-v4-flash-free",
   aiKey: "",
 };
 
