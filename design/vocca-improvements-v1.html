@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocca — Improvements v1 (mockup)</title>
+<style>
+  :root {
+    --bg: #f4f4f0;
+    --card: #ffffff;
+    --ink: #1a1a17;
+    --mute: #8a8a80;
+    --line: #e2e2da;
+    --lime: #84cc16;
+    --lime-soft: #d9f2a8;
+    --amber-soft: #fef9c3;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 32px; }
+  .topbar { display:flex; align-items:center; gap:12px; margin-bottom: 8px; }
+  .logo { width:28px; height:28px; border-radius:8px; background: var(--ink); display:grid; place-items:center; color:white; font-weight:800; font-size:14px; }
+  h1 { font-size:22px; font-weight:800; }
+  .sub { color: var(--mute); font-size:13px; margin-bottom:24px; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .tab { background: var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 16px; font-weight:600; font-size:13px; cursor:pointer; }
+  .tab.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background: var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px; }
+  .card h2 { font-size:15px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+  .card .desc { font-size:12.5px; color: var(--mute); margin-bottom:14px; }
+  .badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .badge.new { background: var(--lime-soft); color:#3f6212; }
+  .badge.ref { background: var(--amber-soft); color:#854d0e; }
+  .badge.wispr { background: #e0f2fe; color:#075985; }
+  .badge.handy { background: #fae8ff; color:#86198f; }
+
+  /* hotkey recorder */
+  .hk-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .hk-row:last-child { border-bottom:none; }
+  .hk-name { flex:1; font-size:13.5px; font-weight:600; }
+  .hk-name small { display:block; font-weight:400; color:var(--mute); font-size:11.5px; }
+  .hk-key { min-width:120px; text-align:center; padding:7px 12px; border:2px dashed var(--line); border-radius:10px; font-weight:700; font-size:13px; background:var(--bg); cursor:pointer; }
+  .hk-key.recording { border-color: var(--lime); background: var(--lime-soft); animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity:.6 } }
+  .hk-chip { font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px; }
+
+  /* words table */
+  .w-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .w-row:last-child { border-bottom:none; }
+  .w-say { flex:0 0 30%; font-size:13px; font-weight:700; background:var(--bg); border-radius:8px; padding:7px 10px; border:1px solid var(--line); }
+  .w-arrow { color:var(--mute); font-size:13px; }
+  .w-insert { flex:1; font-size:13px; background:var(--bg); border-radius:8px; padding:7px 10px; border:1px solid var(--line); }
+  .w-x { width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--mute); cursor:pointer; font-weight:700; }
+  .addbtn { display:flex; align-items:center; gap:8px; color:var(--mute); font-size:13px; cursor:pointer; margin-top:12px; }
+  .addbtn span { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--mute); display:grid; place-items:center; font-size:14px; }
+
+  .mini-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px; }
+  .mini { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:11.5px; color:var(--mute); }
+  .mini b { color:var(--ink); display:block; font-size:12.5px; margin-bottom:2px; }
+
+  .feat { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); align-items:flex-start; }
+  .feat:last-child { border-bottom:none; }
+  .feat .dot { width:9px; height:9px; border-radius:50%; background:var(--lime); margin-top:5px; flex:none; }
+  .feat h3 { font-size:13.5px; font-weight:700; display:flex; gap:6px; align-items:center; }
+  .feat p { font-size:12.5px; color:var(--mute); margin-top:2px; }
+  .foot { margin-top:24px; font-size:12px; color:var(--mute); text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">V</div>
+  <h1>Vocca — v3 improvement mockup</h1>
+</div>
+<div class="sub">Mockup only — click hotkeys to record, add phrases, toggle things. Nothing is real yet.</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('p1',this)">1 · Custom Keys</div>
+  <div class="tab" onclick="show('p2',this)">2 · Custom Words</div>
+  <div class="tab" onclick="show('p3',this)">3 · Wispr/Handy features</div>
+</div>
+
+<!-- ================= PANEL 1: HOTKEYS ================= -->
+<div class="panel active" id="p1">
+  <div class="card">
+    <h2>Custom keys <span class="badge new">NEW — replaces fixed Ctrl+Space</span></h2>
+    <div class="desc">Click a key binding and press the keys you want. Two bindings can't clash — Vocca warns you.</div>
+    <div class="hk-row">
+      <div class="hk-name">Dictate (push to talk)<small>Hold to record, release to insert — the core action</small></div>
+      <span class="hk-key" onclick="record(this)">Ctrl+Space</span>
+      <span class="hk-chip" style="background:var(--lime-soft);color:#3f6212">default</span>
+    </div>
+    <div class="hk-row">
+      <div class="hk-name">Dictate + AI polish<small>Record, then run the polish pass before inserting</small></div>
+      <span class="hk-key" onclick="record(this)">Ctrl+⇧</span>  <!-- will be replaced -->
+    </div>
+    <div class="hk-row">
+      <div class="hk-name">Re-insert last dictation<small>If a paste failed (focus moved) — Handy-style safety net</small></div>
+      <span class="hk-key" onclick="record(this)">not set</span>
+    </div>
+    <div class="hk-row">
+      <div class="hk-name">Toggle floating mic<small>Show/hide the lime mic button</small></div>
+      <span class="hk-key" onclick="record(this)">Ctrl+M</span>
+    </div>
+    <div class="hk-row">
+      <div class="hk-name">Wake word / hands-free shake<small>Off by default (Wispr has shake-to-dictate on mobile — not relevant for a web app; keep empty)</small></div>
+      <span class="hk-key" onclick="record(this)">not set</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PANEL 2: CUSTOM WORDS ================= -->
+<div class="panel" id="p2">
+  <div class="card">
+    <h2>🗣 Custom Words — say the cue, get the text <span class="badge new">NEW</span> <span class="badge wispr">like Wispr Snippets</span> <span class="badge handy">like Handy Custom Words</span></h2>
+    <div class="desc">Your example: you say <b>"linkedin"</b> → Vocca inserts your LinkedIn profile text. Words are substituted live while dictating, exact phrase match, case-insensitive.</div>
+
+    <div class="mini-grid">
+      <div class="mini"><b>Instant</b>the <b>cue</b> when you speak it → immediately replaced on the spot</div>
+      <div class="mini"><b>Word-safe</b>only whole-word matches, "linkedin" never inside "linkedinfo"</div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div class="w-row">
+        <div class="w-say">linkedin</div>
+        <div class="w-arrow">→</div>
+        <div class="w-insert">https://www.linkedin.com/in/divine-eye 🎯</div>
+        <button class="w-del">✕</button>
+      </div>
+      <div class="w-row">
+        <div class="w-say">my email</div>
+        <div class="w-arrow">→</div>
+        <div class="w-insert">admin@xohosting.in</div>
+        <button class="w-del">✕</button>
+      </div>
+      <div class="w-row">
+        <div class="w-say">signature</div>
+        <div class="w-arrow">→</div>
+        <div class="w-insert">— Divine Ey3, Founder, xohosting.in</div>
+        <button class="w-del">✕</button>
+      </div>
+      <div class="w-row">
+        <div class="w-say">mythrix</div>
+        <div class="w-arrow">→</div>
+        <div class="w-insert">Mythrix AI — your AI study assistant</div>
+        <button class="w-del">✕</button>
+      </div>
+    </div>
+    <div class="add-btn"><span>✦</span> Add custom word…</div>
+  </div>
+
+  <div class="card">
+    <h2>Spelling protector <span class="badge ref">already have</span> <span class="badge handy">like Handy's misheard→corrected</span></h2>
+    <div class="desc">The v2 "My Words" list — words the AI must NEVER "correct". Keeping both: this keeps your rare name intact, the new Custom Words above expands phrases. note: with Gemini-style polish we can also say "spelled X" and teach the name in-session.</div>
+    <div class="mini-grid">
+      <div class="mini"><b>My Words (existing)</b>names/terms polish won't touch: tirzeer, mythrix, xohosting</div>
+      <div class="mini"><b>In-session teach</b> (planned in code plan): say "spelled J E N N A" → polish keeps that spelling for this session</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PANEL 3: FEATURES ================= -->
+<div class="panel" id="p3">
+  <div class="card">
+    <h2>⚡ Steal-worthy features from the rivals</h2>
+    <div class="desc">Sourced from Wispr Flow's changelog/features + Handy's open-source docs & GitHub discussions.</div>
+
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Transforms <span class="badge wispr">Wispr</span> — <span class="badge new">PICK #1</span></h3>
+      <p>Your 5 modes (Instant/Email/Chat/Note/Code) are already mini-transforms — the upgrade: <b>re-run the shape on already-dictated text</b> (select transcript → "as email" / "as code" / "replace"). Turns the mode row into a rewrite engine.</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Re-insert last dictation (paste recovery) <span class="badge handy">Handy</span> — PICK #2</h3>
+      <p>If a paste lost focus, press "re-insert last" (hotkey above) and Vocca puts your last dictation into the field you're now in. Handy users begged for this; it's table-stakes for a dictation app.</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Live word count + WPM + pulse <span class="badge ref">already have (v2)</span></h3>
+      <p>Great — Wispr charges for half of this. Keep.</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Per-language hotkeys <span class="badge handy">Handy</span> — PICK #3</h3>
+      <p>Handy's #1 user request: separate shortcut for English vs Hindi so it never mixes. Our hotkey list makes this free: "Dictate" + "Dictate in Hindi".</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Quit-mid-dictation recovery <span class="badge wispr">Wispr</span></h3>
+      <p>If you close the tab mid-dictation, the audio is saved — reopen → History → Recover. Deal for the web app: keep the interim transcript in localStorage (never the audio).</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Snooze / hands-free shake <span class="badge wispr">Wispr</span></h3>
+      <p>Mobile-only for them — skip here, the floating bar + hotkey already covers hands-free on desktop.</p></div>
+    </div>
+    <div class="feat">
+      <div class="dot"></div>
+      <div><h3>Voice editing of selected text <span class="badge wispr">Wispr</span></h3>
+      <p>Highlight text, say "make it more professional" — for Vocca this works fully inside the transcript area and History, not system-wide (web constraint). Feature it later — the app/#3 stage is where it becomes a desktop thing.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">Vocca mockup v1 — hotkeys · custom words · competitive gap · next: build the plan you pick.</div>
+
+<script>
+function record(el) {
+  document.querySelectorAll('.hk-key.recording').forEach(x => { x.classList.remove('recording'); x.dataset.old = ''; });
+  el.classList.add('recording');
+  el.textContent = 'press keys…';
+  const onkey = (e) => {
+    e.preventDefault();
+    const mod = [];
+    if (e.ctrlKey) mod.push('Ctrl');
+    if (e.shiftKey) mod.push('⇧');
+    if (e.altKey) mod.push('Alt');
+    if (e.metaKey) mod.push('Win');
+    const key = e.key.length === 1 ? e.key.toUpperCase() : (e.key === ' ' ? 'Space' : e.key);
+    el.textContent = [...mod, key].join('+');
+    el.classList.remove('recording');
+    window.removeEventListener('keydown', onkey);
+  };
+  window.addEventListener('keydown', onkey);
+}
+function show(id, tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  tab.classList.add('active');
+}
+</script>
+</body>
+</html>
