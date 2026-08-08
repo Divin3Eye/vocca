@@ -12,21 +12,61 @@ describe("mode toggle persistence", () => {
     expect(settings.mode).toBe("instant");
   });
 
-  it("saves and loads polish mode", () => {
+  it("saves and loads email mode", () => {
     const settings = loadSettings();
-    settings.mode = "polish" as Mode;
+    settings.mode = "email";
     saveSettings(settings);
     const loaded = loadSettings();
-    expect(loaded.mode).toBe("polish");
+    expect(loaded.mode).toBe("email");
+  });
+
+  it("saves and loads chat mode", () => {
+    const settings = loadSettings();
+    settings.mode = "chat";
+    saveSettings(settings);
+    const loaded = loadSettings();
+    expect(loaded.mode).toBe("chat");
+  });
+
+  it("saves and loads note mode", () => {
+    const settings = loadSettings();
+    settings.mode = "note";
+    saveSettings(settings);
+    const loaded = loadSettings();
+    expect(loaded.mode).toBe("note");
+  });
+
+  it("saves and loads code mode", () => {
+    const settings = loadSettings();
+    settings.mode = "code";
+    saveSettings(settings);
+    const loaded = loadSettings();
+    expect(loaded.mode).toBe("code");
   });
 
   it("saves and loads instant mode", () => {
     const settings = loadSettings();
-    settings.mode = "polish" as Mode;
+    settings.mode = "email";
     saveSettings(settings);
-    settings.mode = "instant" as Mode;
+    settings.mode = "instant";
     saveSettings(settings);
     const loaded = loadSettings();
     expect(loaded.mode).toBe("instant");
+  });
+
+  it("migrates legacy polish mode to email", () => {
+    localStorage.setItem("vocca_settings", JSON.stringify({ mode: "polish" }));
+    const loaded = loadSettings();
+    expect(loaded.mode).toBe("email");
+  });
+
+  it("all five modes are valid", () => {
+    const modes: Mode[] = ["instant", "email", "chat", "note", "code"];
+    for (const mode of modes) {
+      const settings = loadSettings();
+      settings.mode = mode;
+      saveSettings(settings);
+      expect(loadSettings().mode).toBe(mode);
+    }
   });
 });

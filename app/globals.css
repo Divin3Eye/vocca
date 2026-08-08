@@ -19,6 +19,19 @@
   animation: rise 0.7s ease-out both;
 }
 
+@keyframes blink {
+  50% { opacity: .25; }
+}
+
+@keyframes eq {
+  0%, 100% { height: 5px; }
+  50% { height: 20px; }
+}
+
+.eq-bar {
+  animation: eq 0.9s ease-in-out infinite;
+}
+
 :root {
   --color-lime-accent: #84CC16;
   --color-lime-light: #A3E635;
@@ -58,8 +71,8 @@
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background-color: #fafafa;
-  color: #111;
+  background-color: #f7f7f4;
+  color: #1a1a17;
 }
 
 * {

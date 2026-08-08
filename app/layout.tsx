@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Vocca — Dictation, Instantly",
+  title: "Vocca \u2014 Dictation, Instantly",
   description: "Press a key, say what you want, and it shows up on screen.",
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="min-h-screen bg-[#fafafa] text-[#111] antialiased">
+      <body className="min-h-screen bg-[#f7f7f4] text-[#1a1a17] antialiased">
         {children}
       </body>
     </html>

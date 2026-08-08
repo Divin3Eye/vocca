@@ -22,8 +22,8 @@ export default function SettingsSheet({ settings, onSave, onClose }: SettingsShe
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30" role="dialog" aria-label="Settings">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Settings</h2>
-          <button onClick={onClose} aria-label="Close settings" className="text-gray-400 hover:text-gray-600 cursor-pointer">
+          <h2 className="text-lg font-bold text-[#1a1a17]">Settings</h2>
+          <button onClick={onClose} aria-label="Close settings" className="text-[#a3a39a] hover:text-[#1a1a17] cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -47,12 +47,15 @@ export default function SettingsSheet({ settings, onSave, onClose }: SettingsShe
             />
           </Section>
 
-          <Section label="Mode">
+          <Section label="Default mode">
             <RadioGroup
               value={local.mode}
               options={[
                 { value: "instant", label: "Instant" },
-                { value: "polish", label: "Minor Polish" },
+                { value: "email", label: "Email" },
+                { value: "chat", label: "Chat" },
+                { value: "note", label: "Note" },
+                { value: "code", label: "Code" },
               ]}
               onChange={(v) => update("mode", v as Mode)}
             />
@@ -107,7 +110,7 @@ export default function SettingsSheet({ settings, onSave, onClose }: SettingsShe
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
+      <p className="text-sm font-semibold text-[#6f6f66] mb-2">{label}</p>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -125,14 +128,14 @@ function Toggle({
   return (
     <label className="flex items-center gap-3 cursor-pointer">
       <div
-        className={`relative w-10 h-5 rounded-full transition-colors ${checked ? "bg-lime-500" : "bg-gray-300"}`}
+        className={`relative w-10 h-5 rounded-full transition-colors ${checked ? "bg-[#84cc16]" : "bg-gray-300"}`}
         onClick={() => onChange(!checked)}
       >
         <div
           className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : ""}`}
         />
       </div>
-      <span className="text-sm text-gray-600">{label}</span>
+      <span className="text-sm text-[#6f6f66]">{label}</span>
     </label>
   );
 }
@@ -147,15 +150,15 @@ function RadioGroup({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-2 flex-wrap">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
             value === opt.value
-              ? "bg-lime-500 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "bg-[#84cc16] text-white"
+              : "bg-gray-100 text-[#6f6f66] hover:bg-gray-200"
           }`}
         >
           {opt.label}
@@ -180,13 +183,13 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs text-[#a3a39a] mb-1">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-500"
+        className="w-full px-3 py-2 text-sm border border-[#e7e7e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84cc16]"
       />
     </div>
   );

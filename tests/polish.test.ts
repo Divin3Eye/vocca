@@ -32,23 +32,53 @@ describe("localPolish", () => {
 });
 
 describe("getPolishSystemPrompt", () => {
-  it("returns a non-empty prompt", () => {
-    const prompt = getPolishSystemPrompt();
+  it("returns a non-empty prompt for instant", () => {
+    const prompt = getPolishSystemPrompt("instant");
     expect(prompt.length).toBeGreaterThan(0);
   });
 
   it("includes instruction about self-corrections", () => {
-    const prompt = getPolishSystemPrompt();
+    const prompt = getPolishSystemPrompt("instant");
     expect(prompt.toLowerCase()).toContain("self-correction");
   });
 
   it("includes instruction about fillers", () => {
-    const prompt = getPolishSystemPrompt();
+    const prompt = getPolishSystemPrompt("instant");
     expect(prompt.toLowerCase()).toContain("fillers");
   });
 
   it("instructs to output only cleaned text", () => {
-    const prompt = getPolishSystemPrompt();
+    const prompt = getPolishSystemPrompt("instant");
     expect(prompt.toLowerCase()).toContain("only the cleaned text");
+  });
+
+  it("returns email-specific prompt for email mode", () => {
+    const prompt = getPolishSystemPrompt("email");
+    expect(prompt.toLowerCase()).toContain("email");
+    expect(prompt).toContain("professional");
+  });
+
+  it("returns chat-specific prompt for chat mode", () => {
+    const prompt = getPolishSystemPrompt("chat");
+    expect(prompt.toLowerCase()).toContain("chat");
+    expect(prompt.toLowerCase()).toContain("short");
+  });
+
+  it("returns note-specific prompt for note mode", () => {
+    const prompt = getPolishSystemPrompt("note");
+    expect(prompt.toLowerCase()).toContain("note");
+    expect(prompt.toLowerCase()).toContain("bullet");
+  });
+
+  it("returns code-specific prompt for code mode", () => {
+    const prompt = getPolishSystemPrompt("code");
+    expect(prompt.toLowerCase()).toContain("code");
+    expect(prompt.toLowerCase()).toContain("fenced code blocks");
+  });
+
+  it("resolves 6 PM to 9 PM in self-correction", () => {
+    const prompt = getPolishSystemPrompt("instant");
+    expect(prompt).toContain("6 PM");
+    expect(prompt).toContain("9 PM");
   });
 });

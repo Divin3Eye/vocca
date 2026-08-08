@@ -6,6 +6,12 @@ import {
   saveHistory,
   addToHistory,
   clearHistory,
+  loadWords,
+  saveWords,
+  addWord,
+  removeWord,
+  recordDictation,
+  loadStats,
 } from "../lib/storage";
 import type { Settings, DictationEntry } from "../lib/types";
 
@@ -25,7 +31,7 @@ describe("storage", () => {
     const custom: Settings = {
       hotkeyEnabled: false,
       micButtonEnabled: false,
-      mode: "polish",
+      mode: "email",
       language: "hi-IN",
       translateEnabled: true,
       aiEndpoint: "https://api.example.com",
@@ -35,6 +41,14 @@ describe("storage", () => {
     saveSettings(custom);
     const loaded = loadSettings();
     expect(loaded).toEqual(custom);
+  });
+
+  it("migrates 'polish' mode to 'email' on load", () => {
+    const settings = loadSettings();
+    settings.mode = "polish" as Settings["mode"];
+    saveSettings(settings);
+    const loaded = loadSettings();
+    expect(loaded.mode).toBe("email");
   });
 
   it("loads empty history when none exists", () => {
@@ -79,5 +93,78 @@ describe("storage", () => {
     });
     clearHistory();
     expect(loadHistory()).toEqual([]);
+  });
+});
+
+describe("My Words dictionary", () => {
+  it("loads empty words when none exist", () => {
+    expect(loadWords()).toEqual([]);
+  });
+
+  it("adds a word", () => {
+    const words = addWord("Mythrix");
+    expect(words).toEqual(["Mythrix"]);
+  });
+
+  it("deduplicates on add (case-insensitive)", () => {
+    addWord("mythrix");
+    const words = addWord("Mythrix");
+    expect(words).toHaveLength(1);
+  });
+
+  it("trims whitespace on add", () => {
+    const words = addWord("  Rohan  ");
+    expect(words).toEqual(["Rohan"]);
+  });
+
+  it("does not add empty strings", () => {
+    const words = addWord("  ");
+    expect(words).toEqual([]);
+  });
+
+  it("removes a word", () => {
+    addWord("Mythrix");
+    addWord("Rohan");
+    const words = removeWord("Mythrix");
+    expect(words).toEqual(["Rohan"]);
+  });
+
+  it("persists across save/load", () => {
+    addWord("AWS Lambda");
+    addWord("xohosting");
+    const loaded = loadWords();
+    expect(loaded).toEqual(["AWS Lambda", "xohosting"]);
+  });
+});
+
+describe("stats rollup", () => {
+  it("loads zero stats when empty", () => {
+    const stats = loadStats();
+    expect(stats.words).toBe(0);
+    expect(stats.dictations).toBe(0);
+    expect(stats.wpm).toBe(0);
+    expect(stats.streak).toBe(0);
+  });
+
+  it("records a dictation and updates stats", () => {
+    recordDictation(50, 30000);
+    const stats = loadStats();
+    expect(stats.words).toBe(50);
+    expect(stats.dictations).toBe(1);
+    expect(stats.wpm).toBe(100);
+  });
+
+  it("accumulates multiple dictations", () => {
+    recordDictation(30, 20000);
+    recordDictation(70, 40000);
+    const stats = loadStats();
+    expect(stats.words).toBe(100);
+    expect(stats.dictations).toBe(2);
+  });
+
+  it("computes streak across day boundaries", () => {
+    recordDictation(10, 5000);
+    const stats = loadStats();
+    expect(stats.streak).toBeGreaterThanOrEqual(1);
   });
 });

@@ -2,6 +2,14 @@
 
 import type { Mode } from "@/lib/types";
 
+const MODE_LABELS: Record<Mode, string> = {
+  instant: "Instant",
+  email: "Email",
+  chat: "Chat",
+  note: "Note",
+  code: "Code",
+};
+
 interface ModeBadgeProps {
   mode: Mode;
   polishing?: boolean;
@@ -9,7 +17,7 @@ interface ModeBadgeProps {
 }
 
 export default function ModeBadge({ mode, polishing, translating }: ModeBadgeProps) {
-  let label = mode === "instant" ? "Instant" : "Polish";
+  let label = MODE_LABELS[mode] ?? "Instant";
   let color = "bg-lime-100 text-lime-700";
 
   if (translating) {
