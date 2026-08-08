@@ -69,4 +69,10 @@ describe("mode toggle persistence", () => {
       expect(loadSettings().mode).toBe(mode);
     }
   });
+
+  it("provides default hotkeys when not in saved settings", () => {
+    const loaded = loadSettings();
+    expect(loaded.hotkeys).toBeDefined();
+    expect(loaded.hotkeys.dictate).toEqual({ keys: ["ctrl", " "] });
+  });
 });

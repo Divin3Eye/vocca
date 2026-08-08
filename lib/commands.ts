@@ -1,3 +1,6 @@
+import type { CustomSnippet } from "./types";
+import { expandSnippets } from "./snippets";
+
 interface CommandResult {
   text: string;
   scratchThat?: boolean;
@@ -21,7 +24,10 @@ const QUOTE_PATTERN = /\bquote\b/gi;
 
 let quoteToggle = false;
 
-export function processCommands(text: string): CommandResult {
+export function processCommands(
+  text: string,
+  snippets?: CustomSnippet[]
+): CommandResult {
   let result = text;
 
   if (SCRATCH_PATTERN.test(result)) {
@@ -48,6 +54,10 @@ export function processCommands(text: string): CommandResult {
   result = result.replace(/ \n/g, "\n");
   result = result.replace(/\n /g, "\n");
   result = result.trim();
+
+  if (snippets && snippets.length > 0) {
+    result = expandSnippets(result, snippets);
+  }
 
   return { text: result };
 }

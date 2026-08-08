@@ -1,9 +1,27 @@
-import type { Settings, DictationEntry, DictationRecord, DailyStats } from "./types";
+import type {
+  Settings,
+  DictationEntry,
+  DictationRecord,
+  DailyStats,
+  CustomSnippet,
+  HotkeyChord,
+  LastDictation,
+} from "./types";
 
 const SETTINGS_KEY = "vocca_settings";
 const HISTORY_KEY = "vocca_history";
 const WORDS_KEY = "vocca_words";
 const STATS_KEY = "vocca_stats";
+const SNIPPETS_KEY = "vocca_snippets";
+const LAST_DICTATION_KEY = "vocca_last";
+
+const DEFAULT_HOTKEYS: Record<string, HotkeyChord> = {
+  dictate: { keys: ["ctrl", " "] },
+  dictatePolish: { keys: ["ctrl", "shift", " "] },
+  dictateHindi: { keys: ["ctrl", "alt", " "] },
+  reinsertLast: { keys: [] },
+  toggleMic: { keys: ["ctrl", "m"] },
+};
 
 const DEFAULT_SETTINGS: Settings = {
   hotkeyEnabled: true,
@@ -14,7 +32,21 @@ const DEFAULT_SETTINGS: Settings = {
   aiEndpoint: "https://opencode.ai/zen/v1",
   aiModel: "deepseek-v4-flash-free",
   aiKey: "",
+  hotkeys: DEFAULT_HOTKEYS as Settings["hotkeys"],
 };
+
+const DEFAULT_SNIPPETS: CustomSnippet[] = [
+  {
+    id: "snip_linkedin",
+    cue: "linkedin",
+    insertion: "https://www.linkedin.com/in/divine-eye",
+  },
+  {
+    id: "snip_email",
+    cue: "my email",
+    insertion: "admin@xohosting.in",
+  },
+];
 
 export function loadSettings(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -23,6 +55,9 @@ export function loadSettings(): Settings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
     if (parsed.mode === "polish") parsed.mode = "email";
+    if (!parsed.hotkeys) {
+      parsed.hotkeys = { ...DEFAULT_HOTKEYS };
+    }
     return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;
@@ -96,6 +131,91 @@ export function removeWord(word: string): string[] {
   const updated = words.filter((w) => w !== word);
   saveWords(updated);
   return updated;
+}
+
+// --- Custom Snippets ---
+
+export function loadSnippets(): CustomSnippet[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SNIPPETS_KEY);
+    if (!raw) {
+      saveSnippets(DEFAULT_SNIPPETS);
+      return DEFAULT_SNIPPETS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_SNIPPETS;
+  }
+}
+
+export function saveSnippets(snippets: CustomSnippet[]): void {
+  if (typeof window === "undefined") return;
+  const filtered = snippets.filter((s) => s.cue.trim() && s.insertion.trim());
+  const deduped: CustomSnippet[] = [];
+  for (const s of filtered) {
+    if (!deduped.some((d) => d.cue.toLowerCase() === s.cue.toLowerCase())) {
+      deduped.push(s);
+    }
+  }
+  const capped = deduped.slice(0, 50);
+  localStorage.setItem(SNIPPETS_KEY, JSON.stringify(capped));
+}
+
+export function addSnippet(cue: string, insertion: string): CustomSnippet[] {
+  const snippets = loadSnippets();
+  const trimmedCue = cue.trim();
+  const trimmedInsertion = insertion.trim();
+  if (!trimmedCue || !trimmedInsertion) return snippets;
+  if (snippets.some((s) => s.cue.toLowerCase() === trimmedCue.toLowerCase())) {
+    return snippets;
+  }
+  const newSnippet: CustomSnippet = {
+    id: "snip_" + Date.now(),
+    cue: trimmedCue,
+    insertion: trimmedInsertion,
+  };
+  const updated = [...snippets, newSnippet].slice(0, 50);
+  saveSnippets(updated);
+  return updated;
+}
+
+export function removeSnippet(id: string): CustomSnippet[] {
+  const snippets = loadSnippets();
+  const updated = snippets.filter((s) => s.id !== id);
+  saveSnippets(updated);
+  return updated;
+}
+
+export function updateSnippet(
+  id: string,
+  cue: string,
+  insertion: string
+): CustomSnippet[] {
+  const snippets = loadSnippets();
+  const updated = snippets.map((s) =>
+    s.id === id ? { ...s, cue: cue.trim(), insertion: insertion.trim() } : s
+  );
+  saveSnippets(updated);
+  return updated;
+}
+
+// --- Last Dictation ---
+
+export function saveLastDictation(entry: LastDictation): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LAST_DICTATION_KEY, JSON.stringify(entry));
+}
+
+export function loadLastDictation(): LastDictation | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LAST_DICTATION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 // --- Dictation stats ---

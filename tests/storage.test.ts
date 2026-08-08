@@ -12,6 +12,13 @@ import {
   removeWord,
   recordDictation,
   loadStats,
+  loadSnippets,
+  saveSnippets,
+  addSnippet,
+  removeSnippet,
+  updateSnippet,
+  saveLastDictation,
+  loadLastDictation,
 } from "../lib/storage";
 import type { Settings, DictationEntry } from "../lib/types";
 
@@ -37,6 +44,13 @@ describe("storage", () => {
       aiEndpoint: "https://api.example.com",
       aiModel: "gpt-4",
       aiKey: "test-key",
+      hotkeys: {
+        dictate: { keys: ["ctrl", " "] },
+        dictatePolish: { keys: ["ctrl", "shift", " "] },
+        dictateHindi: { keys: ["ctrl", "alt", " "] },
+        reinsertLast: { keys: [] },
+        toggleMic: { keys: ["ctrl", "m"] },
+      },
     };
     saveSettings(custom);
     const loaded = loadSettings();
@@ -134,6 +148,60 @@ describe("My Words dictionary", () => {
     addWord("xohosting");
     const loaded = loadWords();
     expect(loaded).toEqual(["AWS Lambda", "xohosting"]);
+  });
+});
+
+describe("Custom Snippets", () => {
+  it("loads default snippets when empty", () => {
+    const snippets = loadSnippets();
+    expect(snippets.length).toBeGreaterThan(0);
+  });
+
+  it("adds a snippet", () => {
+    const snippets = addSnippet("test cue", "test insertion");
+    expect(snippets.some((s) => s.cue === "test cue")).toBe(true);
+  });
+
+  it("deduplicates by cue", () => {
+    addSnippet("test", "first");
+    const snippets = addSnippet("test", "second");
+    expect(snippets.filter((s) => s.cue === "test")).toHaveLength(1);
+  });
+
+  it("removes a snippet", () => {
+    const added = addSnippet("removeme", "value");
+    const id = added[added.length - 1].id;
+    const snippets = removeSnippet(id);
+    expect(snippets.some((s) => s.id === id)).toBe(false);
+  });
+
+  it("updates a snippet", () => {
+    const added = addSnippet("updateme", "old");
+    const id = added[added.length - 1].id;
+    const snippets = updateSnippet(id, "updateme", "new");
+    const updated = snippets.find((s) => s.id === id);
+    expect(updated?.insertion).toBe("new");
+  });
+
+  it("caps at 50 snippets", () => {
+    for (let i = 0; i < 55; i++) {
+      addSnippet(`cue${i}`, `insert${i}`);
+    }
+    const snippets = loadSnippets();
+    expect(snippets.length).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("Last Dictation", () => {
+  it("loads null when empty", () => {
+    expect(loadLastDictation()).toBeNull();
+  });
+
+  it("saves and loads last dictation", () => {
+    saveLastDictation({ text: "hello", mode: "instant", timestamp: 123 });
+    const last = loadLastDictation();
+    expect(last?.text).toBe("hello");
+    expect(last?.mode).toBe("instant");
   });
 });
 

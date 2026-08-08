@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import type { Mode } from "@/lib/types";
 
 const HEADER_LABELS: Record<Mode, string> = {
@@ -21,6 +21,7 @@ interface TranscriptAreaProps {
   wordCount?: number;
   wpm?: number;
   polishing?: boolean;
+  onSelectionChange?: (selectedText: string) => void;
 }
 
 const BAR_DELAYS = [0, 130, 260, 50, 190, 310];
@@ -35,6 +36,7 @@ export default function TranscriptArea({
   wordCount = 0,
   wpm = 0,
   polishing = false,
+  onSelectionChange,
 }: TranscriptAreaProps) {
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,6 +46,15 @@ export default function TranscriptArea({
       areaRef.current.style.height = areaRef.current.scrollHeight + "px";
     }
   }, [transcript, interimText]);
+
+  const handleSelect = useCallback(() => {
+    if (!areaRef.current || !onSelectionChange) return;
+    const selected = areaRef.current.value.substring(
+      areaRef.current.selectionStart,
+      areaRef.current.selectionEnd
+    );
+    onSelectionChange(selected.trim());
+  }, [onSelectionChange]);
 
   const displayText = transcript + (interimText ? " " + interimText : "");
   const headerLabel = polishing ? "Polishing\u2026" : recording ? "Listening\u2026" : HEADER_LABELS[mode];
@@ -83,6 +94,7 @@ export default function TranscriptArea({
             ref={areaRef}
             value={displayText}
             onChange={(e) => onChange(e.target.value)}
+            onSelect={handleSelect}
             className="w-full min-h-[170px] text-[19px] leading-[1.65] tracking-[-.01em] text-[#1a1a17] bg-transparent resize-none focus:outline-none"
             aria-label="Dictation transcript"
           />

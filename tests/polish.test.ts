@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { localPolish, getPolishSystemPrompt } from "../lib/polish";
+import { localPolish, getPolishSystemPrompt, getTransformPrompt } from "../lib/polish";
 
 describe("localPolish", () => {
   it("capitalizes first letter of sentences", () => {
@@ -80,5 +80,34 @@ describe("getPolishSystemPrompt", () => {
     const prompt = getPolishSystemPrompt("instant");
     expect(prompt).toContain("6 PM");
     expect(prompt).toContain("9 PM");
+  });
+});
+
+describe("getTransformPrompt", () => {
+  it("returns summary prompt", () => {
+    const prompt = getTransformPrompt("summary");
+    expect(prompt.toLowerCase()).toContain("summar");
+  });
+
+  it("returns rewrite prompt", () => {
+    const prompt = getTransformPrompt("rewrite");
+    expect(prompt.toLowerCase()).toContain("rewrit");
+    expect(prompt.toLowerCase()).toContain("professional");
+  });
+
+  it("returns trim prompt", () => {
+    const prompt = getTransformPrompt("trim");
+    expect(prompt.toLowerCase()).toContain("trim");
+    expect(prompt.toLowerCase()).toContain("filler");
+  });
+
+  it("returns empty string for unknown transform", () => {
+    expect(getTransformPrompt("unknown")).toBe("");
+  });
+
+  it("transform prompts do not invent cue words", () => {
+    const summary = getTransformPrompt("summary");
+    expect(summary.toLowerCase()).not.toContain("linkedin");
+    expect(summary.toLowerCase()).not.toContain("mythrix");
   });
 });

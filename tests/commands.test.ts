@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { processCommands, resetQuoteToggle } from "../lib/commands";
+import type { CustomSnippet } from "../lib/types";
 
 beforeEach(() => {
   resetQuoteToggle();
@@ -102,5 +103,23 @@ describe("processCommands", () => {
 
   it("replaces punctuation commands without extra spaces", () => {
     expect(processCommands("hello . world").text).toBe("hello. world");
+  });
+});
+
+describe("processCommands with snippets", () => {
+  const testSnippets: CustomSnippet[] = [
+    { id: "s1", cue: "my email", insertion: "admin@test.com" },
+  ];
+
+  it("expands snippets after command processing", () => {
+    const result = processCommands("check my email period", testSnippets);
+    expect(result.text).toContain("admin@test.com");
+    expect(result.text).toContain(".");
+    expect(result.text).not.toContain("my email");
+  });
+
+  it("does not expand snippets when none provided", () => {
+    const result = processCommands("check my email");
+    expect(result.text).toContain("my email");
   });
 });

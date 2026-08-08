@@ -42,8 +42,18 @@ ${BASE_POLISH_RULES}
 Output ONLY the code block(s). No preamble, no quotes, no explanation.`,
 };
 
+const TRANSFORM_PROMPTS: Record<string, string> = {
+  summary: `You are a text summarizer. Take the user's text and produce a concise summary that captures the key points. Keep it brief — 2-3 sentences max. Output ONLY the summary.`,
+  rewrite: `You are a text rewriter. The user wants their text rewritten to be more professional. Keep the meaning and facts exactly the same, but improve tone, clarity, and flow. Output ONLY the rewritten text. No preamble.`,
+  trim: `You are a text trimmer. Remove filler words ("um", "uh", "like", "I mean"), repeated words, and unnecessary hedging from the user's text. Keep the substance intact. Output ONLY the trimmed text.`,
+};
+
 export function getPolishSystemPrompt(mode: Mode = "instant"): string {
   return FORMAT_PROMPTS[mode] ?? FORMAT_PROMPTS.instant;
+}
+
+export function getTransformPrompt(transform: string): string {
+  return TRANSFORM_PROMPTS[transform] ?? "";
 }
 
 export async function polishText(
@@ -85,6 +95,44 @@ export async function polishText(
     return data.choices?.[0]?.message?.content ?? localPolish(text);
   } catch {
     return localPolish(text);
+  }
+}
+
+export async function transformText(
+  text: string,
+  transform: string,
+  settings: Settings
+): Promise<string> {
+  const prompt = getTransformPrompt(transform);
+  if (!prompt) return text;
+
+  if (!settings.aiEndpoint || !settings.aiKey) {
+    return text;
+  }
+
+  try {
+    const response = await fetch(settings.aiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.aiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.aiModel,
+        messages: [
+          { role: "system", content: prompt },
+          { role: "user", content: text },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) return text;
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content ?? text;
+  } catch {
+    return text;
   }
 }
 

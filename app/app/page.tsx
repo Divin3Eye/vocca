@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Settings, Mode, DictationEntry, TranscriptEvent } from "@/lib/types";
+import type { Settings, Mode, DictationEntry, TranscriptEvent, HotkeyAction, HotkeyChord } from "@/lib/types";
 import { startListening, stopListening } from "@/lib/speech";
 import { processCommands } from "@/lib/commands";
-import { polishText, localPolish } from "@/lib/polish";
+import { polishText, localPolish, transformText } from "@/lib/polish";
 import { translateText } from "@/lib/translate";
 import {
   loadSettings,
@@ -17,8 +17,11 @@ import {
   removeWord,
   recordDictation,
   loadStats,
+  loadSnippets,
+  saveLastDictation,
+  loadLastDictation,
 } from "@/lib/storage";
-import { registerHotkey, unregisterHotkey } from "@/lib/hotkeys";
+import { registerChordBindings, unregisterAllChords, chordToString, findChordConflict, normalizeChord } from "@/lib/hotkeys";
 import MicButton from "@/components/MicButton";
 import TranscriptArea from "@/components/TranscriptArea";
 import CommandHints from "@/components/CommandHints";
@@ -62,6 +65,16 @@ const MODE_LABELS: Record<Mode, string> = {
   note: "\uD83D\uDCDD Note",
   code: "\u2318 Code",
 };
+
+const TRANSFORM_TYPES = [
+  { id: "email", label: "Email" },
+  { id: "chat", label: "Chat" },
+  { id: "note", label: "Note" },
+  { id: "code", label: "Code" },
+  { id: "summary", label: "Summary" },
+  { id: "rewrite", label: "Rewrite" },
+  { id: "trim", label: "Trim" },
+] as const;
 
 function usePersistedSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -127,17 +140,28 @@ export default function Home() {
   const [activeMode, setActiveMode] = useState<Mode>("instant");
   const [words, setWords] = useState<string[]>([]);
   const [dictInput, setDictInput] = useState("");
+  const [snippets, setSnippets] = useState(() => loadSnippets());
+  const [snoozed, setSnoozed] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [transforming, setTransforming] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   const { wordCount, wpm, dailyStats, startTracking, updateWordCount, endTracking } = useRecordingStats();
 
   useEffect(() => { if (settings) setActiveMode(settings.mode); }, [settings]);
   useEffect(() => { setWords(loadWords()); }, []);
+  useEffect(() => { setSnippets(loadSnippets()); }, [showSettings]);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  }, []);
 
   const handleTranscript = useCallback((event: TranscriptEvent) => {
     if (event.interim) {
       setInterimText(event.text);
     } else {
-      const result = processCommands(event.text);
+      const result = processCommands(event.text, snippets);
       if (result.scratchThat) {
         setTranscript((prev) => {
           const parts = prev.trim().split(/\s+/);
@@ -149,7 +173,7 @@ export default function Home() {
       }
       setInterimText("");
     }
-  }, []);
+  }, [snippets]);
 
   const handleStop = useCallback(async () => {
     setRecording(false);
@@ -163,6 +187,8 @@ export default function Home() {
 
     const wordC = currentText.trim().split(/\s+/).length;
     updateWordCount(wordC);
+
+    saveLastDictation({ text: currentText, mode: activeMode, timestamp: Date.now() });
 
     if (activeMode !== "instant") {
       setPolishing(true);
@@ -202,10 +228,11 @@ export default function Home() {
       };
       setHistory(addToHistory(entry));
     }
-  }, [activeMode, settings, transcript, words, setHistory, endTracking, updateWordCount]);
+  }, [activeMode, settings, transcript, words, setHistory, endTracking, updateWordCount, snippets]);
 
   const toggleRecording = useCallback(() => {
     if (!settings) return;
+    if (snoozed) { showToast("Mic is snoozed"); return; }
     if (recording) {
       stopListening();
       handleStop();
@@ -224,15 +251,67 @@ export default function Home() {
         },
       });
     }
-  }, [recording, settings, handleTranscript, handleStop, startTracking]);
+  }, [recording, settings, handleTranscript, handleStop, startTracking, snoozed, showToast]);
+
+  const handleReinsertLast = useCallback(() => {
+    const last = loadLastDictation();
+    if (!last) { showToast("Nothing to re-insert"); return; }
+    setTranscript((prev) => prev ? prev + " " + last.text : last.text);
+    showToast("Re-inserted last dictation");
+  }, [showToast]);
+
+  const handleTransform = useCallback(async (transformType: string) => {
+    if (!settings || !transcript.trim()) return;
+    setTransforming(true);
+    try {
+      if (["email", "chat", "note", "code"].includes(transformType)) {
+        const result = await polishText(transcript, settings, transformType as Mode, words);
+        setTranscript(result);
+      } else {
+        const result = await transformText(transcript, transformType, settings);
+        setTranscript(result);
+      }
+    } catch {
+      /* no-op */
+    }
+    setTransforming(false);
+  }, [settings, transcript, words]);
+
+  const handleSnooze = useCallback(() => {
+    setSnoozed(true);
+    showToast("Mic snoozed for 5 minutes");
+    setTimeout(() => setSnoozed(false), 5 * 60 * 1000);
+  }, [showToast]);
 
   useEffect(() => {
-    if (settings?.hotkeyEnabled) {
-      const cleanup = registerHotkey(" ", ["ctrl"], toggleRecording);
-      return () => { unregisterHotkey(); cleanup(); };
+    if (!settings?.hotkeyEnabled || !settings?.hotkeys) return;
+    const cleanup = registerChordBindings(settings.hotkeys, {
+      dictationCallback: toggleRecording,
+      releaseCallback: () => { if (recording) handleStop(); },
+      dictatePolishCallback: toggleRecording,
+      dictateHindiCallback: toggleRecording,
+      reinsertLastCallback: handleReinsertLast,
+      toggleMicCallback: toggleRecording,
+    });
+    return () => { unregisterAllChords(); cleanup(); };
+  }, [settings?.hotkeyEnabled, settings?.hotkeys, toggleRecording, recording, handleStop, handleReinsertLast]);
+
+  useEffect(() => {
+    const handler = (e: PageTransitionEvent) => {
+      if (e.type === "pagehide" && transcript.trim() && !recording) {
+        saveLastDictation({ text: transcript, mode: activeMode, timestamp: Date.now() });
+      }
+    };
+    window.addEventListener("pagehide", handler);
+    return () => window.removeEventListener("pagehide", handler);
+  }, [transcript, recording, activeMode]);
+
+  useEffect(() => {
+    const last = loadLastDictation();
+    if (last && Date.now() - last.timestamp < 60000) {
+      showToast("\u00BBRecover last dictation\u00AB \u2014 use re-insert hotkey");
     }
-    return () => unregisterHotkey();
-  }, [settings?.hotkeyEnabled, toggleRecording]);
+  }, []);
 
   const handleCopy = useCallback(() => {
     if (transcript) navigator.clipboard.writeText(transcript);
@@ -276,6 +355,10 @@ export default function Home() {
     setWords(removeWord(word));
   }, []);
 
+  const handleSelectionChange = useCallback((text: string) => {
+    setSelectedText(text);
+  }, []);
+
   if (!settings) return null;
 
   const modeCopy = MODE_COPY[activeMode];
@@ -285,6 +368,12 @@ export default function Home() {
       <div className="fixed inset-0 z-0 pointer-events-none" style={{
         background: "radial-gradient(600px 240px at 50% -60px, rgba(132,204,22,.10), transparent 70%), radial-gradient(400px 200px at 90% 110%, rgba(132,204,22,.06), transparent 70%)"
       }} />
+
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a17] text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-lg">
+          {toast}
+        </div>
+      )}
 
       <div className="relative z-10 max-w-[1080px] mx-auto px-6 py-7 pb-16">
         {/* Top Bar */}
@@ -316,9 +405,11 @@ export default function Home() {
 
         {/* Status Line */}
         <div className="text-center mb-[22px]">
-          <div className="text-xs font-bold uppercase tracking-[.14em] text-[#a3a39a] mb-2">Ctrl + Space anywhere &middot; or tap the mic</div>
+          <div className="text-xs font-bold uppercase tracking-[.14em] text-[#a3a39a] mb-2">
+            {settings.hotkeys?.dictate ? chordToString(settings.hotkeys.dictate) + " anywhere" : "Ctrl+Space anywhere"} &middot; or tap the mic
+          </div>
           <h1 className="text-[clamp(26px,4vw,38px)] font-extrabold tracking-[-.03em] text-[#1a1a17]">
-            {recording ? "Go ahead \u2014 I\u2019m listening." : polishing ? "Polishing\u2026" : modeCopy.title}
+            {recording ? "Go ahead \u2014 I\u2019m listening." : polishing ? "Polishing\u2026" : transforming ? "Transforming\u2026" : modeCopy.title}
           </h1>
           <div className="text-[15px] text-[#6f6f66] mt-2">
             {recording ? "Pause to think all you want. Vocca keeps up." : polishing ? "Applying format-aware corrections\u2026" : modeCopy.sub}
@@ -358,7 +449,24 @@ export default function Home() {
           wordCount={wordCount}
           wpm={wpm}
           polishing={polishing}
+          onSelectionChange={handleSelectionChange}
         />
+
+        {/* Transform bar */}
+        {selectedText && (
+          <div className="flex justify-center gap-2 mt-3">
+            {TRANSFORM_TYPES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => handleTransform(t.id)}
+                disabled={transforming}
+                className="px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-[#d9f2a8] bg-[#ecfccb] text-[#3f6212] cursor-pointer hover:bg-[#d9f2a8] disabled:opacity-40"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Transcript Footer */}
         <div className="flex items-center justify-between flex-wrap gap-2.5 px-0 py-2.5 mt-1">
@@ -371,6 +479,14 @@ export default function Home() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
               Rephrase
             </button>
+            <button onClick={handleReinsertLast} className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-3.5 py-2 rounded-[11px] border border-[#e7e7e1] bg-white text-[#6f6f66] cursor-pointer transition-all hover:text-[#1a1a17] hover:border-[#d4d4cc]">
+              Re-insert
+            </button>
+            {snoozed && (
+              <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-[#a3a39a]">
+                Snoozed 5m
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             {settings?.translateEnabled && (
@@ -387,7 +503,7 @@ export default function Home() {
 
         {/* Mic Zone */}
         <div className="flex justify-center mt-[34px] mb-1.5">
-          <MicButton recording={recording} onClick={toggleRecording} visible={settings.micButtonEnabled} />
+          <MicButton recording={recording} onClick={toggleRecording} visible={settings.micButtonEnabled} snoozed={snoozed} />
         </div>
         <div className="text-center text-[#a3a39a] text-[13px] mt-3.5">
           Hold <span className="inline-block text-[11px] font-bold text-[#6f6f66] border border-[#e7e7e1] rounded-[6px] px-[7px] py-[2px] bg-white mx-0.5">Ctrl</span>+<span className="inline-block text-[11px] font-bold text-[#6f6f66] border border-[#e7e7e1] rounded-[6px] px-[7px] py-[2px] bg-white mx-0.5">Space</span> while talking, release when done &middot; or tap the mic
@@ -448,7 +564,7 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-[11.5px] text-[#a3a39a] mt-3 leading-relaxed">
-                {"Words you add are protected: Vocca never \u201Ccorrects\u201D them, and AI polish keeps them exactly as written. Fixes the \u201Cit butchered my name/product\u201D problem."}
+                {"Words you add are protected: Vocca never \u201Ccorrects\u201D them, and AI polish keeps them exactly as written."}
               </p>
             </div>
 
@@ -477,7 +593,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="mt-14 text-center text-[#a3a39a] text-[12.5px] leading-[1.7]">
-          {"Vocca v2 \u00B7 open-source (MIT) \u00B7 works on Windows, Mac, Linux \u00B7 free forever"}
+          {"Vocca v3 \u00B7 open-source (MIT) \u00B7 works on Windows, Mac, Linux \u00B7 free forever"}
           <br />
           {"Made with "}
           <span className="text-[#ef4444]">{"\u2665"}</span>

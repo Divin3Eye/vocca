@@ -4,16 +4,21 @@ interface MicButtonProps {
   recording: boolean;
   onClick: () => void;
   visible: boolean;
+  snoozed?: boolean;
 }
 
-export default function MicButton({ recording, onClick, visible }: MicButtonProps) {
+export default function MicButton({ recording, onClick, visible, snoozed }: MicButtonProps) {
   if (!visible) return null;
 
   return (
     <button
       onClick={onClick}
       aria-label={recording ? "Stop dictation" : "Start dictation"}
-      className="relative flex items-center justify-center w-16 h-16 rounded-full bg-lime-500 hover:bg-lime-400 active:bg-lime-600 text-white shadow-lg transition-colors cursor-pointer"
+      className={`relative flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-colors cursor-pointer ${
+        snoozed
+          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+          : "bg-lime-500 hover:bg-lime-400 active:bg-lime-600 text-white"
+      }`}
     >
       {recording && (
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-60" />
